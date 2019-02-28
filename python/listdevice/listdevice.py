@@ -1,23 +1,15 @@
 import ctypes
 
-TY_LIB_FILE = "../../lib/libtycam.so"
-
-def TY_initLib(lib_file):
-	tylib = ctypes.cdll.LoadLibrary(lib_file)
-
-	res = tylib._TYInitLib()
-
-	if res != 0:
-		raise Exception('Lib initial failed, return value: ', res)
-
-	return tylib
+from TY_struct import *
 
 def TY_getLibVersion(tylib):
+	"""
 	class TY_VERSION_INFO(ctypes.Structure):
 		_fields_ = [ ('major', ctypes.c_int), 
 					 ('minor', ctypes.c_int), 
 					 ('patch', ctypes.c_int), 
 					 ('reserved', ctypes.c_int) ]
+	"""
 
 	ver = TY_VERSION_INFO()
 	res = tylib.TYLibVersion(ctypes.byref(ver))
@@ -49,6 +41,7 @@ def TY_getInterfaceList(tylib):
 	if num_interface == 0:
 		return []
 
+	"""
 	class TY_DEVICE_NET_INFO(ctypes.Structure):
 		_fields_ = [ ('mac', ctypes.c_char * 32), 
 					 ('ip', ctypes.c_char * 32), 
@@ -63,6 +56,7 @@ def TY_getInterfaceList(tylib):
 					 ('type', ctypes.c_int),
 					 ('reserved', ctypes.c_char * 4), 
 					 ('netInfo', TY_DEVICE_NET_INFO) ]
+	"""
 
 	interface_info_array = TY_INTERFACE_INFO * num_interface
 	interfaces = interface_info_array()
