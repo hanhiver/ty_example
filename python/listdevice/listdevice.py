@@ -66,20 +66,33 @@ def TY_getInterfaceList(tylib):
 
 	interface_info_array = TY_INTERFACE_INFO * num_interface
 	interfaces = interface_info_array()
-	interfaces_p = ctypes.POINTER(TY_INTERFACE_INFO)()
-	interfaces_p.value = interfaces 
 
 	interface_number = ctypes.c_int()
 	interface_number.value = num_interface
 
-	res = tylib.TYGetInterfaceList(interfaces_p, 
+	res = tylib.TYGetInterfaceList(ctypes.pointer(interfaces), 
 							 	   interface_number, 
 							 	   ctypes.byref(interface_number))
 	if res != 0:
 		raise Exception('Get interfaces list failed, return value: ', res)
-	print('{} interfaces in the list. '.format(num_interface))
-	return num_interface
 
+	index = 1
+	for item in interfaces: 
+		print('Found interface {}: '.format(index))
+		index += 1
+
+		print('    name: {}'.format(item.name.decode()))
+		print('    id:   {}'.format(item.id.decode()))
+		print('    type: {}'.format(item.type))
+
+		if item.type == 4 or item.type == 8:
+			print('     - MAC:       {}'.format(item.netInfo.mac.decode()))
+			print('     - ip:        {}'.format(item.netInfo.ip.decode()))
+			print('     - netmask:   {}'.format(item.netInfo.netmask.decode()))
+			print('     - gateway:   {}'.format(item.netInfo.gateway.decode()))
+			print('     - broadcast: {}'.format(item.netInfo.broadcast.decode()))
+
+	return interfaces
 
 def main():
 	tylib = TY_initLib(TY_LIB_FILE)
