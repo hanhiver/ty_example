@@ -11,7 +11,7 @@ def main():
 	ifaces = TY_getInterfaceList(tylib = tylib) 
 
 	hIface = ctypes.c_void_p()
-	res = tylib.TYOpenInterface(ifaces[SELECTED_IFACE], ctypes.byref(hIface))
+	res = tylib.TYOpenDevice(ifaces[SELECTED_IFACE], ctypes.byref(hIface))
 	if res != 0:
 		raise Exception('TYOpenInterface failed, return value: ', res)
 

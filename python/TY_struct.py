@@ -2,6 +2,9 @@ import ctypes
 
 TY_LIB_FILE = "../../lib/libtycam.so"
 
+def getkey(dict, value):
+	return [ k for k,v in dict.items() if v == value ]
+
 TY_STATUS_LIST = {
     'TY_STATUS_OK'                : 0,
     'TY_STATUS_ERROR'             : -1001,
@@ -30,6 +33,15 @@ TY_STATUS_LIST = {
     'TY_STATUS_FIRMWARE_ERROR'    : -1024, 
     }
 
+TY_INTERFACE_TYPE_LIST = {
+	'TY_INTERFACE_UNKNOWN'        : 0,
+    'TY_INTERFACE_RAW'            : 1,
+    'TY_INTERFACE_USB'            : 2,
+    'TY_INTERFACE_ETHERNET'       : 4,
+    'TY_INTERFACE_IEEE80211'      : 8,
+    'TY_INTERFACE_ALL'            : 0xffff,
+}
+
 
 class TY_VERSION_INFO(ctypes.Structure):
 	_fields_ = [('major', ctypes.c_int), 
@@ -45,6 +57,11 @@ class TY_DEVICE_NET_INFO(ctypes.Structure):
 				('broadcast', ctypes.c_char * 32), 
 				('reserved', ctypes.c_char * 96)]
 
+class TY_DEVICE_USB_INFO(ctypes.Structure):
+	_fields_ = [('bus', ctypes.c_int), 
+				('addr', ctypes.c_int), 
+				('reserved', ctypes.c_char * 248)]
+
 class TY_INTERFACE_INFO(ctypes.Structure):
 	_fields_ = [('name', ctypes.c_char * 32), 
 				('id', ctypes.c_char * 32),
@@ -52,12 +69,24 @@ class TY_INTERFACE_INFO(ctypes.Structure):
 				('reserved', ctypes.c_char * 4), 
 				('netInfo', TY_DEVICE_NET_INFO)]
 
+
 class TY_DEVICE_BASE_INFO(ctypes.Structure):
-	_fields_ = [('id', ctypes.c_char * 32), 
+	
+	class _UNION(ctypes.Union):
+		_fields_ = [('netInfo', TY_DEVICE_NET_INFO), 
+					('usbInfo', TY_DEVICE_USB_INFO)]
+
+	_anonymous_ = ('_union', )
+
+	_fields_ = [('iface', TY_INTERFACE_INFO), 
+				('id', ctypes.c_char * 32), 
 				('vendorName', ctypes.c_char * 32), 
 				('modelName', ctypes.c_char * 32), 
 				('hardwareVersion', TY_VERSION_INFO), 
-				('firmwareVersion', TY_VERSION_INFO)]
+				('firmwareVersion', TY_VERSION_INFO), 
+				('_union', _UNION), 
+				('reserved', ctypes.c_char * 256)]
+
 
 def TY_initLib(lib_file):
 	tylib = None
@@ -117,26 +146,60 @@ def TY_getInterfaceList(tylib):
 	if res != 0:
 		raise Exception('Get interfaces list failed, return value: ', res)
 
-	index = 1
-	for item in interfaces: 
-		print('Interface #{}: '.format(index))
-		index += 1
-
-		print('    name: {}'.format(item.name.decode()))
-		print('    id:   {}'.format(item.id.decode()))
-		print('    type: {}'.format(item.type))
-
-		if item.type == 4 or item.type == 8:
-			print('     - MAC:       {}'.format(item.netInfo.mac.decode()))
-			print('     - ip:        {}'.format(item.netInfo.ip.decode()))
-			print('     - netmask:   {}'.format(item.netInfo.netmask.decode()))
-			print('     - gateway:   {}'.format(item.netInfo.gateway.decode()))
-			print('     - broadcast: {}'.format(item.netInfo.broadcast.decode()))
-
-		print('')
-
 	return interfaces
 
+
+def TY_getDeviceList(tylib, iface_id):
+
+	hIface = ctypes.c_void_p()
+		
+	res = tylib.TYOpenInterface(iface_id, ctypes.byref(hIface))
+	if res != 0:
+		raise Exception('TYOpenInterface failed, return value: ', res)
+
+	res = tylib.TYUpdateDeviceList(hIface)
+	if res != 0:
+		raise Exception('TYUpdateDeviceList failed, return value: ', res)
+
+	num_device = ctypes.c_int(0)
+	res = tylib.TYGetDeviceNumber(hIface, ctypes.byref(num_device))
+	if res != 0:
+		raise Exception('TYGetDeviceNumber failed, return value: ', res)
+	
+	if num_device.value == 0:
+		return []
+
+	dev_info_array = TY_DEVICE_BASE_INFO * num_device.value
+
+	devs = dev_info_array()
+	res = tylib.TYGetDeviceList(hIface, 
+								ctypes.pointer(devs), 
+								num_device, 
+								ctypes.byref(num_device))
+
+	if res != 0:
+		raise Exception('TYGetDeviceList failed, return value: {}'.format(getkey(TY_STATUS_LIST, res)), res)
+
+	if len(devs) != num_device.value:
+		raise Exception('TYGetDeviceList error, wrong device number: ', len(devs))
+
+	for dev in devs:
+		if dev.iface.type  != TY_INTERFACE_TYPE_LIST['TY_INTERFACE_ETHERNET'] \
+			and dev.iface.type != TY_INTERFACE_TYPE_LIST['TY_INTERFACE_ETHERNET']:
+
+			handle = ctypes.c_void_p(0)
+
+			res = tylib.TYOpenDevice(hIface, dev.id, ctypes.byref(handle))
+			
+			if res == 0:
+				tylib.TYGetDeviceInfo(handle, ctypes.byref(dev))
+				tylib.TYCloseDevice(handle)
+			else: 
+				raise Exception('TYOpenDevice failed, return value: {}'.format(getkey(TY_STATUS_LIST, res)), res)
+
+	tylib.TYCloseInterface(hIface)	
+
+	return devs 
 
 
 
