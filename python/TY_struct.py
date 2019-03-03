@@ -42,6 +42,20 @@ TY_INTERFACE_TYPE_LIST = {
     'TY_INTERFACE_ALL'            : 0xffff,
 }
 
+TY_DEVICE_COMPONENT_LIST = {
+    'TY_COMPONENT_DEVICE'         : 0x80000000, # Abstract component stands for whole device, always enabled
+    'TY_COMPONENT_DEPTH_CAM'      : 0x00010000, # Depth camera
+    'TY_COMPONENT_IR_CAM_LEFT'    : 0x00040000, # Left IR camera
+    'TY_COMPONENT_IR_CAM_RIGHT'   : 0x00080000, # Right IR camera
+    'TY_COMPONENT_RGB_CAM_LEFT'   : 0x00100000, # Left RGB camera
+    'TY_COMPONENT_RGB_CAM_RIGHT'  : 0x00200000, # Right RGB camera
+    'TY_COMPONENT_LASER'          : 0x00400000, # Laser
+    'TY_COMPONENT_IMU'            : 0x00800000, # Inertial Measurement Unit
+    'TY_COMPONENT_BRIGHT_HISTO'   : 0x01000000, # virtual component for brightness histogram of ir
+
+    'TY_COMPONENT_RGB_CAM'        : 0x00100000 # Some device has only one RGB camera, map it to left
+}
+
 
 class TY_VERSION_INFO(ctypes.Structure):
 	_fields_ = [('major', ctypes.c_int), 
@@ -87,6 +101,10 @@ class TY_DEVICE_BASE_INFO(ctypes.Structure):
 				('_union', _UNION), 
 				('reserved', ctypes.c_char * 256)]
 
+class TY_ENUM_ENTRY(ctypes.Structure):
+	_fields_ = [('description', ctypes.c_char * 64), 
+				('value', ctypes.c_int), 
+				('reserved', ctypes.c_int * 3)]
 
 def TY_initLib(lib_file):
 	tylib = None
