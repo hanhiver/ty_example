@@ -56,6 +56,73 @@ TY_DEVICE_COMPONENT_LIST = {
     'TY_COMPONENT_RGB_CAM'        : 0x00100000 # Some device has only one RGB camera, map it to left
 }
 
+TY_FEATURE_TYPE_LIST = {
+    'TY_FEATURE_INT'              : 0x1000,
+    'TY_FEATURE_FLOAT'            : 0X2000,
+    'TY_FEATURE_ENUM'             : 0x3000,
+    'TY_FEATURE_BOOL'             : 0x4000,
+    'TY_FEATURE_STRING'           : 0x5000,
+    'TY_FEATURE_BYTEARRAY'        : 0x6000,
+    'TY_FEATURE_STRUCT'           : 0x7000,
+}
+
+TY_FEATURE_ID_LIST = {
+    'TY_STRUCT_CAM_INTRINSIC'         : 0x0000 | TY_FEATURE_TYPE_LIST['TY_FEATURE_STRUCT'], # see TY_CAMERA_INTRINSIC
+    'TY_STRUCT_EXTRINSIC_TO_LEFT_IR'  : 0x0001 | TY_FEATURE_TYPE_LIST['TY_FEATURE_STRUCT'], # extrinsic from current component to left IR, see TY_CAMERA_EXTRINSIC
+    'TY_STRUCT_CAM_DISTORTION'        : 0x0006 | TY_FEATURE_TYPE_LIST['TY_FEATURE_STRUCT'], # see TY_CAMERA_DISTORTION
+    'TY_STRUCT_CAM_CALIB_DATA'        : 0x0007 | TY_FEATURE_TYPE_LIST['TY_FEATURE_STRUCT'], # see TY_CAMERA_CALIB_INFO
+
+    'TY_INT_PERSISTENT_IP'            : 0x0010 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],
+    'TY_INT_PERSISTENT_SUBMASK'       : 0x0011 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],
+    'TY_INT_PERSISTENT_GATEWAY'       : 0x0012 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],
+    'TY_BOOL_GVSP_RESEND'             : 0x0013 | TY_FEATURE_TYPE_LIST['TY_FEATURE_BOOL'],
+    'TY_INT_PACKET_DELAY'             : 0x0014 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],    # microseconds
+    'TY_INT_ACCEPTABLE_PERCENT'       : 0x0015 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],
+    'TY_INT_NTP_SERVER_IP'            : 0x0016 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],    # Ntp server IP
+    'TY_STRUCT_CAM_STATISTICS'        : 0x00ff | TY_FEATURE_TYPE_LIST['TY_FEATURE_STRUCT'], # statistical information, see TY_CAMERA_STATISTICS
+
+    'TY_INT_WIDTH_MAX'                : 0x0100 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],
+    'TY_INT_HEIGHT_MAX'               : 0x0101 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],
+    'TY_INT_OFFSET_X'                 : 0x0102 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],
+    'TY_INT_OFFSET_Y'                 : 0x0103 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],
+    'TY_INT_WIDTH'                    : 0x0104 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],  # Image width
+    'TY_INT_HEIGHT'                   : 0x0105 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],  # Image height
+    'TY_ENUM_IMAGE_MODE'              : 0x0109 | TY_FEATURE_TYPE_LIST['TY_FEATURE_ENUM'], # Resolution-PixelFromat mode, see TY_IMAGE_MODE_LIST
+
+    #@breif scale unit
+    #depth image is uint16 pixel format with default millimeter unit ,for some device  can output Sub-millimeter accuracy data
+    #the acutal depth (mm): PxielValue * ScaleUnit 
+    'TY_FLOAT_SCALE_UNIT'             : 0x010a | TY_FEATURE_TYPE_LIST['TY_FEATURE_FLOAT'], 
+
+    'TY_ENUM_TRIGGER_ACTIVATION'      : 0x0201 | TY_FEATURE_TYPE_LIST['TY_FEATURE_ENUM'], # Trigger activation, see TY_TRIGGER_ACTIVATION_LIST
+    'TY_INT_FRAME_PER_TRIGGER'        : 0x0202 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],  # Number of frames captured per trigger
+    'TY_STRUCT_TRIGGER_PARAM'         : 0x0523 | TY_FEATURE_TYPE_LIST['TY_FEATURE_STRUCT'],  # param of trigger, see TY_TRIGGER_PARAM
+    'TY_BOOL_KEEP_ALIVE_ONOFF'        : 0x0203 | TY_FEATURE_TYPE_LIST['TY_FEATURE_BOOL'], # Keep Alive switch
+    'TY_INT_KEEP_ALIVE_TIMEOUT'       : 0x0204 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],  # Keep Alive timeout
+    'TY_BOOL_CMOS_SYNC'               : 0x0205 | TY_FEATURE_TYPE_LIST['TY_FEATURE_BOOL'], # Cmos sync switch
+    'TY_INT_TRIGGER_DELAY_US'         : 0x0206 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],  # Trigger delay time, in microseconds
+    'TY_BOOL_TRIGGER_OUT_IO'          : 0x0207 | TY_FEATURE_TYPE_LIST['TY_FEATURE_BOOL'], # Trigger out IO
+
+    'TY_BOOL_AUTO_EXPOSURE'           : 0x0300 | TY_FEATURE_TYPE_LIST['TY_FEATURE_BOOL'], # Auto exposure switch
+    'TY_INT_EXPOSURE_TIME'            : 0x0301 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],  # Exposure time in percentage
+    'TY_BOOL_AUTO_GAIN'               : 0x0302 | TY_FEATURE_TYPE_LIST['TY_FEATURE_BOOL'], # Auto gain switch
+    'TY_INT_GAIN'                     : 0x0303 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],  # Sensor Gain
+    'TY_BOOL_AUTO_AWB'                : 0x0304 | TY_FEATURE_TYPE_LIST['TY_FEATURE_BOOL'], # Auto white balance
+
+    'TY_INT_LASER_POWER'              : 0x0500 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],  # Laser power level
+    'TY_BOOL_LASER_AUTO_CTRL'         : 0x0501 | TY_FEATURE_TYPE_LIST['TY_FEATURE_BOOL'], # Laser auto ctrl
+
+    'TY_BOOL_UNDISTORTION'            : 0x0510 | TY_FEATURE_TYPE_LIST['TY_FEATURE_BOOL'], # Output undistorted image
+    'TY_BOOL_BRIGHTNESS_HISTOGRAM'    : 0x0511 | TY_FEATURE_TYPE_LIST['TY_FEATURE_BOOL'], # Output bright histogram
+    'TY_BOOL_DEPTH_POSTPROC'          : 0x0512 | TY_FEATURE_TYPE_LIST['TY_FEATURE_BOOL'], # Do depth image postproc
+
+    'TY_INT_R_GAIN'                   : 0x0520 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],  # Gain of R channel
+    'TY_INT_G_GAIN'                   : 0x0521 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],  # Gain of G channel
+    'TY_INT_B_GAIN'                   : 0x0522 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],  # Gain of B channel
+
+    'TY_INT_ANALOG_GAIN'              : 0x0524 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],  # Analog gain
+}
+
 
 class TY_VERSION_INFO(ctypes.Structure):
 	_fields_ = [('major', ctypes.c_int), 
