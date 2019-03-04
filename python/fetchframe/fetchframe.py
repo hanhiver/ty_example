@@ -3,7 +3,7 @@ import ctypes
 from TY_struct import *
 
 TY_LIB_FILE = "../../lib/libtycam.so"
-SELECTED_IFACE = 1
+NUM_FRAMES = 1
 
 def eventCallback(event_info, user_data):
 	if event_info.contents.eventId == TY_EVENT_LIST['TY_EVENT_DEVICE_OFFLINE']:
@@ -98,14 +98,15 @@ def main():
 		if res != 0:
 			raise Exception('TYGetEnumEntryInfo TY_COMPONENT_DEPTH_CAM, TY_ENUM_IMAGE_MODE failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
 
-		#for image_mode in image_mode_list:
-		#	print(image_mode.description.decode())
+		print("Supported Modes: ")
+		for image_mode in image_mode_list:
+			print('    - ', image_mode.description.decode())
 
 		for image_mode in image_mode_list:
 			width = (image_mode.value & 0x00ffffff) >> 12
 			height = (image_mode.value & 0x00ffffff) & 0x0fff
 			#print("width = {}, height = {}. ".format(width, height))
-			if width == 640 or height == 480: 
+			if width == 320 or height == 240: 
 				print("Select Depth Image Mode: {}".format(image_mode.description.decode()))
 				res = tylib.TYSetEnum(hDevice, 
 									  TY_DEVICE_COMPONENT_LIST['TY_COMPONENT_DEPTH_CAM'], 
@@ -183,14 +184,44 @@ def main():
 	else:
 		print("Device has no trigger. ")
 
+	print("\n=== Fetch the frames ===")
+
+	print("Start Capture ")
+	res = tylib.TYStartCapture(hDevice)
+	if res != 0:
+		raise Exception('TYStartCapture failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
+
+	frame = TY_FRAME_DATA()
+	index = 1
+
+	print("Get into loop to fetch {} frames.".format(NUM_FRAMES))
+
+	for i in range(NUM_FRAMES):
+		res = tylib.TYFetchFrame(hDevice, ctypes.byref(frame), -1)
+		if res == 0:
+			print("Get frame {}".format(index))
+			index += 1
+
+			print("Enqueue the buffers. ")
+			ret = tylib.TYEnqueueBuffer(hDevice, frame.userBuffer, frame.bufferSize)
+			if ret != 0:
+				raise Exception('TYEnqueueBuffer failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
+
+			#print("SIZE of the frame: ", ctypes.sizeof(frame))
+		else:
+			raise Exception('TYFetchFrame failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
+
+	print("Finished frames fetch, stop capture. ")
+	res = tylib.TYStopCapture(hDevice)
+	if res != 0:
+		raise Exception('TYStopCapture failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
+
+	print("Close the devices. ")
 	tylib.TYCloseDevice(hDevice)
 	tylib.TYCloseInterface(hIface)
 	tylib.TYISPRelease(ctypes.byref(hColorIspHandle))
 	tylib.TYDeinitLib()
 	print("Done!")
-
-
-	 
 
 
 

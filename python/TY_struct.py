@@ -137,6 +137,7 @@ TY_TRIGGER_MODE_LIST = {
 }
 
 
+
 class TY_VERSION_INFO(ctypes.Structure):
 	_fields_ = [('major', ctypes.c_int), 
 				('minor', ctypes.c_int), 
@@ -193,6 +194,26 @@ class TY_TRIGGER_PARAM(ctypes.Structure):
 	_fields_ = [('mode', ctypes.c_int16), 
 				('fps', ctypes.c_int8), 
 				('rsvd', ctypes.c_int8)]
+
+class TY_IMAGE_DATA(ctypes.Structure):
+	_fields_ = [('timestamp', ctypes.c_uint64), 
+				('imageIndex', ctypes.c_int32), 
+				('status', ctypes.c_int32), 
+				('componentID', ctypes.c_int32), 
+				('size', ctypes.c_int32), 
+				('buffer', ctypes.c_void_p),
+				('width', ctypes.c_int32), 
+				('height', ctypes.c_int32), 
+				('pixelFormat', ctypes.c_int32), 
+				('status', ctypes.c_int32 * 9)]
+
+class TY_FRAME_DATA(ctypes.Structure):
+	_fields_ = [('userBuffer', ctypes.c_void_p), 
+				('bufferSize', ctypes.c_int32), 
+				('validCount', ctypes.c_int32), 
+				('reserved', ctypes.c_int32 * 6), 
+				('image', TY_IMAGE_DATA * 10)]
+
 
 def TY_initLib(lib_file):
 	tylib = None
