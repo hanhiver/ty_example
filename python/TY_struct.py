@@ -123,6 +123,19 @@ TY_FEATURE_ID_LIST = {
     'TY_INT_ANALOG_GAIN'              : 0x0524 | TY_FEATURE_TYPE_LIST['TY_FEATURE_INT'],  # Analog gain
 }
 
+TY_EVENT_LIST = {
+    'TY_EVENT_DEVICE_OFFLINE'     : -2001,
+    'TY_EVENT_LICENSE_ERROR'      : -2002,
+    'TY_EVENT_FW_INIT_ERROR'      : -2003,
+}
+
+TY_TRIGGER_MODE_LIST = {
+    'TY_TRIGGER_MODE_OFF'         : 0, #not trigger mode, continuous mode
+    'TY_TRIGGER_MODE_SLAVE'       : 1, #slave mode, receive soft/hardware triggers
+    'TY_TRIGGER_MODE_M_SIG'       : 2, #master mode 1, sending one trigger signal once received a soft/hardware trigger
+    'TY_TRIGGER_MODE_M_PER'       : 3, #master mode 2, periodic sending one trigger signals, 'fps' param should be set
+}
+
 
 class TY_VERSION_INFO(ctypes.Structure):
 	_fields_ = [('major', ctypes.c_int), 
@@ -150,7 +163,6 @@ class TY_INTERFACE_INFO(ctypes.Structure):
 				('reserved', ctypes.c_char * 4), 
 				('netInfo', TY_DEVICE_NET_INFO)]
 
-
 class TY_DEVICE_BASE_INFO(ctypes.Structure):
 	
 	class _UNION(ctypes.Union):
@@ -172,6 +184,15 @@ class TY_ENUM_ENTRY(ctypes.Structure):
 	_fields_ = [('description', ctypes.c_char * 64), 
 				('value', ctypes.c_int), 
 				('reserved', ctypes.c_int * 3)]
+
+class TY_EVENT_INFO(ctypes.Structure):
+	_fields_ = [('eventId', ctypes.c_int), 
+				('message', ctypes.c_char * 124)]
+
+class TY_TRIGGER_PARAM(ctypes.Structure):
+	_fields_ = [('mode', ctypes.c_int16), 
+				('fps', ctypes.c_int8), 
+				('rsvd', ctypes.c_int8)]
 
 def TY_initLib(lib_file):
 	tylib = None

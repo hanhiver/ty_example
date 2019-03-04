@@ -5,6 +5,11 @@ from TY_struct import *
 TY_LIB_FILE = "../../lib/libtycam.so"
 SELECTED_IFACE = 1
 
+def eventCallback(event_info, user_data):
+	if event_info.contents.eventId == TY_EVENT_LIST['TY_EVENT_DEVICE_OFFLINE']:
+		print('Event Callback: Device Offline. ')
+	elif event_info.contents.eventId == TY_EVENT_LIST['TY_EVENT_LICENSE_ERROR']:
+		print('Event Callback: License Error! ')
 
 def main():
 	print("\n=== Prepare TY Library ===")
@@ -132,6 +137,51 @@ def main():
 
 	print("Frame size is: ", frameSize.value)
 
+	frameBuffer0 = ctypes.pointer(ctypes.create_string_buffer(frameSize.value))
+	frameBuffer1 = ctypes.pointer(ctypes.create_string_buffer(frameSize.value))
+
+	print("Enqueue buffer[0] ({}, {})".format(ctypes.byref(frameBuffer0), frameSize.value))
+	res = tylib.TYEnqueueBuffer(hDevice, frameBuffer0, frameSize.value)
+	if res != 0:
+		raise Exception('TYEnqueueBuffer frameBuffer0 failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
+
+	print("Enqueue buffer[1] ({}, {})".format(ctypes.byref(frameBuffer1), frameSize.value))
+	res = tylib.TYEnqueueBuffer(hDevice, frameBuffer1, frameSize.value)
+	if res != 0:
+		raise Exception('TYEnqueueBuffer frameBuffer1 failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
+
+	print("Register event callback.")
+	event = TY_EVENT_INFO() # TY_EVENT
+	void_p_NULL = ctypes.c_void_p(0)
+	callback_func = ctypes.CFUNCTYPE(None, ctypes.POINTER(TY_EVENT_INFO), ctypes.c_void_p)
+	callback = callback_func(eventCallback)
+	res = tylib.TYRegisterEventCallback(hDevice, ctypes.byref(event), void_p_NULL)
+	if res != 0:
+		raise Exception('TYRegisterEventCallback failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
+
+	hasTrigger = ctypes.c_bool()
+	res = tylib.TYHasFeature(hDevice, 
+							 TY_DEVICE_COMPONENT_LIST['TY_COMPONENT_DEVICE'], 
+							 TY_FEATURE_ID_LIST['TY_STRUCT_TRIGGER_PARAM'], 
+							 ctypes.byref(hasTrigger))
+	if res != 0:
+		raise Exception('TYHasFeature TY_COMPONENT_DEVICE TY_STRUCT_TRIGGER_PARAM failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
+
+
+	if hasTrigger.value: 
+		print("Device has a trigger, disable it. ")
+		trigger = TY_TRIGGER_PARAM()
+		trigger.mode = TY_TRIGGER_MODE_LIST['TY_TRIGGER_MODE_OFF']
+		res = tylib.TYSetStruct(hDevice, 
+								TY_DEVICE_COMPONENT_LIST['TY_COMPONENT_DEVICE'], 
+								TY_FEATURE_ID_LIST['TY_STRUCT_TRIGGER_PARAM'], 
+								ctypes.byref(trigger),
+								ctypes.sizeof(trigger))
+		if res != 0:
+			raise Exception('TYSetStruct TY_COMPONENT_DEVICE TY_STRUCT_TRIGGER_PARAM failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
+
+	else:
+		print("Device has no trigger. ")
 
 	tylib.TYCloseDevice(hDevice)
 	tylib.TYCloseInterface(hIface)
