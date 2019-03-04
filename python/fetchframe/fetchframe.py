@@ -7,6 +7,7 @@ SELECTED_IFACE = 1
 
 
 def main():
+	print("\n=== Prepare TY Library ===")
 	tylib = TY_initLib(TY_LIB_FILE)
 	ifaces = TY_getInterfaceList(tylib = tylib) 
 
@@ -22,6 +23,7 @@ def main():
 
 	print('{} devices found. '.format(len(selected)))
 
+	print("\n=== Setup devices and components ===")
 
 	hIface = ctypes.c_void_p(0) #TY_INTERFACE_HANDLE
 	hDevice = ctypes.c_void_p(0) #TY_DEV_HANDLE
@@ -91,11 +93,14 @@ def main():
 		if res != 0:
 			raise Exception('TYGetEnumEntryInfo TY_COMPONENT_DEPTH_CAM, TY_ENUM_IMAGE_MODE failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
 
+		#for image_mode in image_mode_list:
+		#	print(image_mode.description.decode())
+
 		for image_mode in image_mode_list:
 			width = (image_mode.value & 0x00ffffff) >> 12
 			height = (image_mode.value & 0x00ffffff) & 0x0fff
-			print("width = {}, height = {}. ".format(width, height))
-			if width == 640 or height == 640: 
+			#print("width = {}, height = {}. ".format(width, height))
+			if width == 640 or height == 480: 
 				print("Select Depth Image Mode: {}".format(image_mode.description.decode()))
 				res = tylib.TYSetEnum(hDevice, 
 									  TY_DEVICE_COMPONENT_LIST['TY_COMPONENT_DEPTH_CAM'], 
@@ -107,6 +112,26 @@ def main():
 		res = tylib.TYEnableComponents(hDevice, TY_DEVICE_COMPONENT_LIST['TY_COMPONENT_DEPTH_CAM'])
 		if res != 0:
 			raise Exception('TYEnableComponents TY_COMPONENT_DEPTH_CAM failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
+
+		scale_unit = ctypes.c_float(1.0)
+		res = tylib.TYGetFloat(hDevice, 
+							   TY_DEVICE_COMPONENT_LIST['TY_COMPONENT_DEPTH_CAM'], 
+							   TY_FEATURE_ID_LIST['TY_FLOAT_SCALE_UNIT'], 
+							   ctypes.byref(scale_unit))
+		#if res != 0:
+		#	raise Exception('TYGetFloat TY_COMPONENT_DEPTH_CAM TY_FLOAT_SCALE_UNIT failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
+
+		print("Get the scale_unit: ", scale_unit.value)
+
+	print("\n=== Prepare image buffer ===")
+
+	frameSize = ctypes.c_int()
+	res = tylib.TYGetFrameBufferSize(hDevice, ctypes.byref(frameSize))
+	if res != 0:
+		raise Exception('TYGetFrameBufferSize failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
+
+	print("Frame size is: ", frameSize.value)
+
 
 	tylib.TYCloseDevice(hDevice)
 	tylib.TYCloseInterface(hIface)

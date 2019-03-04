@@ -1,0 +1,2 @@
+# Copy to /etc/udev/rules.d/
+SUBSYSTEM== "usb",ATTRS{idProduct}=="1003",ATTRS{idVendor}=="04b4",GROUP="dhan",MODE="0666"
