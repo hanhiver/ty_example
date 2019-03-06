@@ -2,7 +2,7 @@ import ctypes
 
 from TY_struct import *
 
-TY_LIB_FILE = "../../lib/libtycam.so"
+TY_LIB_FILE = "/home/dhan/myprog/camport3/lib/linux/lib_x64/libtycam.so"
 NUM_FRAMES = 1
 
 def eventCallback(event_info, user_data):
@@ -14,6 +14,7 @@ def eventCallback(event_info, user_data):
 def main():
 	print("\n=== Prepare TY Library ===")
 	tylib = TY_initLib(TY_LIB_FILE)
+	#print(tylib.TYISPUpdateDevice)
 	ifaces = TY_getInterfaceList(tylib = tylib) 
 
 	selected = []
@@ -106,7 +107,7 @@ def main():
 			width = (image_mode.value & 0x00ffffff) >> 12
 			height = (image_mode.value & 0x00ffffff) & 0x0fff
 			#print("width = {}, height = {}. ".format(width, height))
-			if width == 320 or height == 240: 
+			if width == 640 or height == 640: 
 				print("Select Depth Image Mode: {}".format(image_mode.description.decode()))
 				res = tylib.TYSetEnum(hDevice, 
 									  TY_DEVICE_COMPONENT_LIST['TY_COMPONENT_DEPTH_CAM'], 
@@ -202,12 +203,17 @@ def main():
 			print("Get frame {}".format(index))
 			index += 1
 
+			print("SIZE of the frame: ", ctypes.sizeof(frame))
+			
+			print("Update ISP device. ")
+			print(tylib.TYISPUpdateDevice)
+			tylib.TYISPUpdateDevice(hColorIspHandle)
+
 			print("Enqueue the buffers. ")
 			ret = tylib.TYEnqueueBuffer(hDevice, frame.userBuffer, frame.bufferSize)
 			if ret != 0:
 				raise Exception('TYEnqueueBuffer failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
 
-			#print("SIZE of the frame: ", ctypes.sizeof(frame))
 		else:
 			raise Exception('TYFetchFrame failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
 
@@ -218,6 +224,8 @@ def main():
 
 	print("Close the devices. ")
 	tylib.TYCloseDevice(hDevice)
+
+	print("Close the interface. ")
 	tylib.TYCloseInterface(hIface)
 	tylib.TYISPRelease(ctypes.byref(hColorIspHandle))
 	tylib.TYDeinitLib()
