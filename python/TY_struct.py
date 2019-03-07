@@ -1,4 +1,5 @@
 import ctypes
+import numpy as np
 
 TY_LIB_FILE = "../../lib/libtycam.so"
 
@@ -136,6 +137,25 @@ TY_TRIGGER_MODE_LIST = {
     'TY_TRIGGER_MODE_M_PER'       : 3, #master mode 2, periodic sending one trigger signals, 'fps' param should be set
 }
 
+TY_PIXEL_BITS_LIST = {
+    'TY_PIXEL_8BIT'               : 0x1 << 28,
+    'TY_PIXEL_16BIT'              : 0x2 << 28,
+    'TY_PIXEL_24BIT'              : 0x3 << 28,
+    'TY_PIXEL_32BIT'              : 0x4 << 28,
+}
+
+TY_PIXEL_FORMAT_LIST = {
+    'TY_PIXEL_FORMAT_UNDEFINED'   : 0,
+    'TY_PIXEL_FORMAT_MONO'        : (TY_PIXEL_BITS_LIST['TY_PIXEL_8BIT']  | (0x0 << 24)), # 0x10000000
+    'TY_PIXEL_FORMAT_BAYER8GB'    : (TY_PIXEL_BITS_LIST['TY_PIXEL_8BIT']  | (0x1 << 24)), # 0x11000000
+    'TY_PIXEL_FORMAT_DEPTH16'     : (TY_PIXEL_BITS_LIST['TY_PIXEL_16BIT'] | (0x0 << 24)), # 0x20000000
+    'TY_PIXEL_FORMAT_YVYU'        : (TY_PIXEL_BITS_LIST['TY_PIXEL_16BIT'] | (0x1 << 24)), # 0x21000000, yvyu422
+    'TY_PIXEL_FORMAT_YUYV'        : (TY_PIXEL_BITS_LIST['TY_PIXEL_16BIT'] | (0x2 << 24)), # 0x22000000, yuyv422
+    'TY_PIXEL_FORMAT_RGB'         : (TY_PIXEL_BITS_LIST['TY_PIXEL_24BIT'] | (0x0 << 24)), # 0x30000000
+    'TY_PIXEL_FORMAT_BGR'         : (TY_PIXEL_BITS_LIST['TY_PIXEL_24BIT'] | (0x1 << 24)), # 0x31000000
+    'TY_PIXEL_FORMAT_JPEG'        : (TY_PIXEL_BITS_LIST['TY_PIXEL_24BIT'] | (0x2 << 24)), # 0x32000000
+    'TY_PIXEL_FORMAT_MJPG'        : (TY_PIXEL_BITS_LIST['TY_PIXEL_24BIT'] | (0x3 << 24)), # 0x33000000
+}
 
 
 class TY_VERSION_INFO(ctypes.Structure):
@@ -205,7 +225,7 @@ class TY_IMAGE_DATA(ctypes.Structure):
 				('width', ctypes.c_int32), 
 				('height', ctypes.c_int32), 
 				('pixelFormat', ctypes.c_int32), 
-				('status', ctypes.c_int32 * 9)]
+				('reserved', ctypes.c_int32 * 9)]
 
 class TY_FRAME_DATA(ctypes.Structure):
 	_fields_ = [('userBuffer', ctypes.c_void_p), 
@@ -213,6 +233,8 @@ class TY_FRAME_DATA(ctypes.Structure):
 				('validCount', ctypes.c_int32), 
 				('reserved', ctypes.c_int32 * 6), 
 				('image', TY_IMAGE_DATA * 10)]
+
+
 
 
 def TY_initLib(lib_file):
@@ -328,5 +350,64 @@ def TY_getDeviceList(tylib, iface_id):
 
 	return devs 
 
+def phaseFrame(frame):
+	out = {'depth' : None, 
+		   'color' : None, 
+		   'ir_left' : None, 
+		   'ir_right' : None}
+
+	valid_count = frame.validCount
+
+	for i in range(valid_count):
+		#print("PHASE FRAME: {}".format(i))
+
+		if frame.image[i].componentID == TY_DEVICE_COMPONENT_LIST['TY_COMPONENT_DEPTH_CAM']:
+			py_buf = ctypes.cast(frame.image[i].buffer, ctypes.POINTER(ctypes.c_uint16))
+			np_image = np.ctypeslib.as_array(py_buf, shape = (frame.image[i].height, frame.image[i].width))
+			#np_image = np_data.reshape((frame.image[i].height, frame.image[i].width))
+			out['depth'] = np_image
+			#print('Depth: Size: {}, Width: {}, Height: {}, shape: {}'.format(
+			#		frame.image[i].size, 
+			#		frame.image[i].width, 
+			#		frame.image[i].height, 
+			#		np_image.shape))
+
+		elif frame.image[i].componentID == TY_DEVICE_COMPONENT_LIST['TY_COMPONENT_IR_CAM_LEFT']:
+			py_buf = ctypes.cast(frame.image[i].buffer, ctypes.POINTER(ctypes.c_uint8))
+			np_image = np.ctypeslib.as_array(py_buf, shape = (frame.image[i].height, frame.image[i].width))
+			out['ir_left'] = np_image
+			#print('IR(L): Size: {}, Width: {}, Height: {}, shape: {}'.format(
+			#		frame.image[i].size, 
+			#		frame.image[i].width, 
+			#		frame.image[i].height, 
+			#		np_image.shape))
+
+		elif frame.image[i].componentID == TY_DEVICE_COMPONENT_LIST['TY_COMPONENT_IR_CAM_RIGHT']:
+			py_buf = ctypes.cast(frame.image[i].buffer, ctypes.POINTER(ctypes.c_uint8))
+			np_image = np.ctypeslib.as_array(py_buf, shape = (frame.image[i].height, frame.image[i].width))
+			out['ir_right'] = np_image
+			#print('IR(L): Size: {}, Width: {}, Height: {}, shape: {}'.format(
+			#		frame.image[i].size, 
+			#		frame.image[i].width, 
+			#		frame.image[i].height,
+			#		np_image.shape))
+
+
+		elif frame.image[i].componentID == TY_DEVICE_COMPONENT_LIST['TY_COMPONENT_RGB_CAM']:
+			py_buf = ctypes.cast(frame.image[i].buffer, ctypes.POINTER(ctypes.c_uint8 * 2))
+			np_image = np.ctypeslib.as_array(py_buf, shape = (frame.image[i].height, frame.image[i].width))
+			out['color'] = np_image
+			#print('Color: Size: {}, Width: {}, Height: {}, shape: {}, Pixel_format: {}'.format(
+			#		frame.image[i].size, 
+			#		frame.image[i].width, 
+			#		frame.image[i].height, 
+			#		np_image.shape, 
+			#		getkey(TY_PIXEL_FORMAT_LIST, frame.image[i].pixelFormat) 
+			#		))
+
+	return out
+
+
+		
 
 

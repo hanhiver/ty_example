@@ -1,9 +1,11 @@
 import ctypes
+import numpy as np
+import cv2
 
 from TY_struct import *
 
 TY_LIB_FILE = "/home/dhan/myprog/camport3/lib/linux/lib_x64/libtycam.so"
-NUM_FRAMES = 1
+NUM_FRAMES = 10
 
 def eventCallback(event_info, user_data):
 	if event_info.contents.eventId == TY_EVENT_LIST['TY_EVENT_DEVICE_OFFLINE']:
@@ -107,7 +109,7 @@ def main():
 			width = (image_mode.value & 0x00ffffff) >> 12
 			height = (image_mode.value & 0x00ffffff) & 0x0fff
 			#print("width = {}, height = {}. ".format(width, height))
-			if width == 640 or height == 640: 
+			if width == 320 or height == 320: 
 				print("Select Depth Image Mode: {}".format(image_mode.description.decode()))
 				res = tylib.TYSetEnum(hDevice, 
 									  TY_DEVICE_COMPONENT_LIST['TY_COMPONENT_DEPTH_CAM'], 
@@ -204,9 +206,34 @@ def main():
 			index += 1
 
 			print("SIZE of the frame: ", ctypes.sizeof(frame))
+			out = phaseFrame(frame)
+
+			for channel in out:
+				print("OUT channel: <{}>, image shape: {}.".format(channel, out[channel].shape))
+				if channel == 'depth':
+					np.savetxt('depth.csv', out[channel], fmt = '%d', delimiter = ',')
+
+					max_level = out[channel].max()
+					min_level = max_level
+					for item in out[channel].flat[:]:
+						if item > 0:
+							if item < min_level:
+								min_level = item
+
+					print("MAX Level is: {}, MIN level is: {}.".format(max_level, min_level))
+
+					for i in range(out[channel].shape[0]):
+						for j in range(out[channel].shape[1]):
+							if out[channel][i][j] > 0:
+								out[channel][i][j] - min_level
+
+					image_norm = out[channel] * 256 / out[channel].max()
+					cv2.namedWindow('image', cv2.WINDOW_NORMAL)
+					cv2.imshow('image', image_norm)
+					if cv2.waitKey(1) & 0xFF == ord('q'):
+						return False
 			
 			print("Update ISP device. ")
-			print(tylib.TYISPUpdateDevice)
 			tylib.TYISPUpdateDevice(hColorIspHandle)
 
 			print("Enqueue the buffers. ")
