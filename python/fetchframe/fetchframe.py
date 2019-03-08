@@ -4,8 +4,9 @@ import cv2
 
 from TY_struct import *
 
-TY_LIB_FILE = "/home/dhan/myprog/camport3/lib/linux/lib_x64/libtycam.so"
-NUM_FRAMES = 10
+#TY_LIB_FILE = "../../libtycam.so"
+#TY_LIB_FILE = "/home/grace/camport3/lib/linux/lib_x64/libtycam.so"
+NUM_FRAMES = 100
 
 def eventCallback(event_info, user_data):
 	if event_info.contents.eventId == TY_EVENT_LIST['TY_EVENT_DEVICE_OFFLINE']:
@@ -141,15 +142,18 @@ def main():
 
 	print("Frame size is: ", frameSize.value)
 
-	frameBuffer0 = ctypes.pointer(ctypes.create_string_buffer(frameSize.value))
-	frameBuffer1 = ctypes.pointer(ctypes.create_string_buffer(frameSize.value))
+	#frameBuffer0 = ctypes.pointer(ctypes.create_string_buffer(frameSize.value))
+	#frameBuffer1 = ctypes.pointer(ctypes.create_string_buffer(frameSize.value))
 
-	print("Enqueue buffer[0] ({}, {})".format(ctypes.byref(frameBuffer0), frameSize.value))
+	frameBuffer0 = ctypes.create_string_buffer(frameSize.value)
+	frameBuffer1 = ctypes.create_string_buffer(frameSize.value)
+
+	print("Enqueue buffer[0] ({}, {})".format(frameBuffer0, frameSize.value))
 	res = tylib.TYEnqueueBuffer(hDevice, frameBuffer0, frameSize.value)
 	if res != 0:
 		raise Exception('TYEnqueueBuffer frameBuffer0 failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
 
-	print("Enqueue buffer[1] ({}, {})".format(ctypes.byref(frameBuffer1), frameSize.value))
+	print("Enqueue buffer[1] ({}, {})".format(frameBuffer1, frameSize.value))
 	res = tylib.TYEnqueueBuffer(hDevice, frameBuffer1, frameSize.value)
 	if res != 0:
 		raise Exception('TYEnqueueBuffer frameBuffer1 failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
@@ -194,10 +198,13 @@ def main():
 	if res != 0:
 		raise Exception('TYStartCapture failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
 
+
 	frame = TY_FRAME_DATA()
 	index = 1
 
 	print("Get into loop to fetch {} frames.".format(NUM_FRAMES))
+
+	frameBuffer = ctypes.create_string_buffer(frameSize.value)
 
 	for i in range(NUM_FRAMES):
 		res = tylib.TYFetchFrame(hDevice, ctypes.byref(frame), -1)
@@ -205,7 +212,7 @@ def main():
 			print("Get frame {}".format(index))
 			index += 1
 
-			print("SIZE of the frame: ", ctypes.sizeof(frame))
+			print("Buffer size of the frame: ", frame.bufferSize)
 			out = phaseFrame(frame)
 
 			for channel in out:
@@ -214,11 +221,8 @@ def main():
 					np.savetxt('depth.csv', out[channel], fmt = '%d', delimiter = ',')
 
 					max_level = out[channel].max()
-					min_level = max_level
-					for item in out[channel].flat[:]:
-						if item > 0:
-							if item < min_level:
-								min_level = item
+					min_level = (out[channel][out[channel] > 0]).min()
+					ptp_level = max_level - min_level
 
 					print("MAX Level is: {}, MIN level is: {}.".format(max_level, min_level))
 
@@ -227,22 +231,27 @@ def main():
 							if out[channel][i][j] > 0:
 								out[channel][i][j] - min_level
 
-					image_norm = out[channel] * 256 / out[channel].max()
+					image_norm = out[channel] * 256 / ptp_level
 					cv2.namedWindow('image', cv2.WINDOW_NORMAL)
 					cv2.imshow('image', image_norm)
-					if cv2.waitKey(1) & 0xFF == ord('q'):
-						return False
+					#cv2.waitKey(0)
+					if cv2.waitKey(10) & 0xFF == ord('q'):
+						break
 			
-			print("Update ISP device. ")
-			tylib.TYISPUpdateDevice(hColorIspHandle)
+			#print("Update ISP device. ")
+			#tylib.TYISPUpdateDevice(hColorIspHandle)
 
 			print("Enqueue the buffers. ")
-			ret = tylib.TYEnqueueBuffer(hDevice, frame.userBuffer, frame.bufferSize)
+			#frame.userBuffer = frameBuffer
+			print("Enqueue frame.userBuffer ({:x}, {})".format(frame.userBuffer, frame.bufferSize))
+			#ret = tylib.TYEnqueueBuffer(hDevice, frame.userBuffer, frame.bufferSize)
+			ret = tylib.TYEnqueueBuffer(hDevice, frameBuffer, frame.bufferSize)
 			if ret != 0:
 				raise Exception('TYEnqueueBuffer failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
 
 		else:
 			raise Exception('TYFetchFrame failed: {}'.format(getkey(TY_STATUS_LIST, res)), res)
+	
 
 	print("Finished frames fetch, stop capture. ")
 	res = tylib.TYStopCapture(hDevice)
