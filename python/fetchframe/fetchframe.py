@@ -6,7 +6,7 @@ from TY_struct import *
 
 #TY_LIB_FILE = "../../libtycam.so"
 #TY_LIB_FILE = "/home/grace/camport3/lib/linux/lib_x64/libtycam.so"
-NUM_FRAMES = 100
+NUM_FRAMES = 10
 
 def eventCallback(event_info, user_data):
 	if event_info.contents.eventId == TY_EVENT_LIST['TY_EVENT_DEVICE_OFFLINE']:
@@ -110,7 +110,7 @@ def main():
 			width = (image_mode.value & 0x00ffffff) >> 12
 			height = (image_mode.value & 0x00ffffff) & 0x0fff
 			#print("width = {}, height = {}. ".format(width, height))
-			if width == 320 or height == 320: 
+			if width == 640 or height == 640: 
 				print("Select Depth Image Mode: {}".format(image_mode.description.decode()))
 				res = tylib.TYSetEnum(hDevice, 
 									  TY_DEVICE_COMPONENT_LIST['TY_COMPONENT_DEPTH_CAM'], 
@@ -218,18 +218,24 @@ def main():
 			for channel in out:
 				print("OUT channel: <{}>, image shape: {}.".format(channel, out[channel].shape))
 				if channel == 'depth':
-					np.savetxt('depth.csv', out[channel], fmt = '%d', delimiter = ',')
+					#np.savetxt('depth.csv', out[channel], fmt = '%d', delimiter = ',')
 
 					max_level = out[channel].max()
-					min_level = (out[channel][out[channel] > 0]).min()
+					min_level = out[channel][out[channel] > 0]
+					if min_level.size != 0:
+						min_level = min_level.min()
+					else:
+						min_level = 0 
+
 					ptp_level = max_level - min_level
 
 					print("MAX Level is: {}, MIN level is: {}.".format(max_level, min_level))
 
-					for i in range(out[channel].shape[0]):
-						for j in range(out[channel].shape[1]):
-							if out[channel][i][j] > 0:
-								out[channel][i][j] - min_level
+					if min_level != 0:
+						for i in range(out[channel].shape[0]):
+							for j in range(out[channel].shape[1]):
+								if out[channel][i][j] > 0:
+									out[channel][i][j] - min_level
 
 					image_norm = out[channel] * 256 / ptp_level
 					cv2.namedWindow('image', cv2.WINDOW_NORMAL)
@@ -237,9 +243,7 @@ def main():
 					#cv2.waitKey(0)
 					if cv2.waitKey(10) & 0xFF == ord('q'):
 						break
-			
-			#print("Update ISP device. ")
-			#tylib.TYISPUpdateDevice(hColorIspHandle)
+
 
 			print("Enqueue the buffers. ")
 			#frame.userBuffer = frameBuffer

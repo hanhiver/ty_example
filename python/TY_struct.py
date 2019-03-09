@@ -235,8 +235,6 @@ class TY_FRAME_DATA(ctypes.Structure):
 				('image', TY_IMAGE_DATA * 10)]
 
 
-
-
 def TY_initLib(lib_file):
 	tylib = None
 
