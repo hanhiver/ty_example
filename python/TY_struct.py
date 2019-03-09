@@ -348,6 +348,7 @@ def TY_getDeviceList(tylib, iface_id):
 
 	return devs 
 
+
 def phaseFrame(frame):
 	out = {'depth' : None, 
 		   'color' : None, 
