@@ -7,7 +7,7 @@ from TY_struct import *
 #TY_LIB_FILE = "../../libtycam.so"
 #TY_LIB_FILE = "/home/grace/camport3/lib/linux/lib_x64/libtycam.so"
 NUM_FRAMES = 1
-DEPTH_RES = 320
+DEPTH_RES = 1280
 
 def eventCallback(event_info, user_data):
 	if event_info.contents.eventId == TY_EVENT_LIST['TY_EVENT_DEVICE_OFFLINE']:
@@ -221,7 +221,7 @@ def main():
 				if channel == 'depth':
 					#np.savetxt('depth.csv', out[channel], fmt = '%d', delimiter = ',')
 
-					"""
+					
 					max_level = out[channel].max()
 					min_level = out[channel][out[channel] > 0]
 					if min_level.size != 0:
@@ -239,17 +239,19 @@ def main():
 								if out[channel][i][j] > 0:
 									out[channel][i][j] - min_level
 
+					image = np.array(out[channel], dtype = np.uint16)
+					np.save('deep', image)
 					image_norm = out[channel] * 256 / ptp_level
-					"""
+					
 
-					#image_norm = np.array(out[channel] * 256 / ptp_level, dtype = np.uint8)
-					image_norm = np.array(out[channel], dtype = np.uint16)
+					image_norm = np.array(out[channel] * 256 / ptp_level, dtype = np.uint8)
+					#image_norm = np.array(out[channel], dtype = np.uint16)
 					image_equal = cv2.equalizeHist(image_norm)
 					cv2.namedWindow('image', cv2.WINDOW_NORMAL)
-					cv2.imshow('image', image_norm)
-					#cv2.waitKey(0)
-					if cv2.waitKey(0) & 0xFF == ord('q'):
-						break
+					cv2.imshow('image', image_equal)
+					cv2.waitKey(0)
+					#if cv2.waitKey(1) & 0xFF == ord('q'):
+					#	break
 
 
 			print("Enqueue the buffers. ")
